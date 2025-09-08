@@ -1,0 +1,68 @@
+{
+  "google_drive": {
+    "credentials_path": "/etc/csync/credentials.json",
+    "token_path": "/var/lib/csync/token.json",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file"
+    ],
+    "folder_id": "1ABCDEFGHIJKLMNOPqrstuvwxyz123456",
+    "metadata": {
+      "source": "csync-daemon",
+      "environment": "production",
+      "version": "1.0.0"
+    }
+  },
+  "pcloud": {
+    "username": "production@company.com",
+    "password": "secure-password-here",
+    "api_host": "https://api.pcloud.com",
+    "folder_id": "12345"
+  },
+  "general": {
+    "max_concurrency": 10,
+    "retry_attempts": 5,
+    "chunk_size_bytes": 16777216,
+    "ignore_patterns": [
+      ".git/",
+      ".DS_Store",
+      "Thumbs.db",
+      "*.tmp",
+      "*.temp",
+      "*.swp",
+      "*~",
+      ".env",
+      ".env.*",
+      "node_modules/",
+      "__pycache__/",
+      "*.pyc",
+      ".cache/",
+      "logs/*.log"
+    ],
+    "include_patterns": [
+      "*.pdf",
+      "*.docx",
+      "*.xlsx",
+      "*.pptx",
+      "*.txt",
+      "*.md"
+    ]
+  },
+  "optional": {
+    "daemon": {
+      "enabled": true,
+      "sync_interval": "15m",
+      "watch_mode": true,
+      "pid_file": "/var/run/csync.pid"
+    },
+    "logging": {
+      "log_file": "/var/log/csync.log",
+      "log_level": "info",
+      "verbose": false
+    },
+    "advanced": {
+      "skip_existing": true,
+      "delete_removed": false,
+      "preserve_mod_time": true
+    }
+  }
+}

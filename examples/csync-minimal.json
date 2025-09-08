@@ -1,0 +1,23 @@
+{
+  "google_drive": {
+    "credentials_path": "credentials.json",
+    "token_path": "token.json",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
+  "pcloud": {
+    "username": "your-email@example.com",
+    "password": "your-password",
+    "api_host": "https://api.pcloud.com"
+  },
+  "general": {
+    "max_concurrency": 5,
+    "retry_attempts": 3,
+    "chunk_size_bytes": 8388608,
+    "ignore_patterns": [
+      ".git/",
+      "*.tmp"
+    ]
+  }
+}

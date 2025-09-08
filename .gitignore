@@ -7,6 +7,9 @@
 *.dll
 *.so
 *.dylib
+*.pid
+*.log
+*.lock
 
 # Test binary, built with `go test -c`
 *.test
@@ -30,3 +33,9 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# csync specific
+csync
+csync.json
+credentials.json
+token.json
