@@ -19,7 +19,7 @@ type GoogleDriveConfig struct {
 	// Required fields
 	CredentialsPath string   `json:"credentials_path"`
 	TokenPath       string   `json:"token_path"`
-	Scopes          []string `json:"scopes"`
+	Scopes          []string `json:"scopes,omitempty"`
 
 	// Optional fields - specify either folder_id OR destination_path
 	FolderID        string            `json:"folder_id,omitempty"`        // Specific folder ID
@@ -32,7 +32,7 @@ type PCloudConfig struct {
 	// Required fields - can be set via environment variables
 	Username string `json:"username,omitempty"` // Can use PCLOUD_USERNAME env var
 	Password string `json:"password,omitempty"` // Can use PCLOUD_PASSWORD env var
-	APIHost  string `json:"api_host"`
+	APIHost  string `json:"api_host,omitempty"`
 
 	// Optional fields - specify either folder_id OR destination_path
 	FolderID        string `json:"folder_id,omitempty"`        // Specific folder ID
@@ -94,12 +94,10 @@ func DefaultConfig() *Config {
 		GoogleDrive: GoogleDriveConfig{
 			CredentialsPath: "credentials.json",
 			TokenPath:       "token.json",
-			Scopes: []string{
-				"https://www.googleapis.com/auth/drive.file",
-			},
+			// Scopes will use defaults in the code
 		},
 		PCloud: PCloudConfig{
-			APIHost: "https://api.pcloud.com",
+			// APIHost will use defaults in the code
 		},
 		General: GeneralConfig{
 			SourcePath:     "", // Must be specified by user

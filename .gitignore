@@ -40,6 +40,8 @@ csync-*
 csync.json
 credentials.json
 token.json
+credentials/
+test/
 
 # Security - never commit these
 .env

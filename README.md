@@ -2,19 +2,6 @@
 
 A cloud drive synchronization tool written in that syncs local folders to Google Drive and pCloud.
 
-## Features
-
-- **Multi-provider support**: Sync to Google Drive and pCloud simultaneously
-- **Concurrent uploads**: Configurable concurrent file transfers for optimal performance
-- **Smart sync**: MD5-based file comparison to avoid unnecessary uploads
-- **Pattern filtering**: Include/exclude files using glob patterns
-- **Dry run mode**: Preview changes before execution
-- **Retry logic**: Automatic retry with exponential backoff
-- **Progress tracking**: Real-time sync progress reporting
-- **Daemon mode**: Run as background service with configurable sync intervals
-- **File watching**: Real-time sync when files change (polling-based)
-- **Standard library focused**: Minimal external dependencies, leveraging Go's powerful standard library
-
 ## Installation
 
 ### Prerequisites
@@ -46,6 +33,98 @@ go install github.com/svosadtsia/csync/cmd/csync@latest
 5. Download the credentials file and save it as `credentials.json`
 6. Update the configuration file with the correct path
 
+#### Detailed Google Drive Authorization Process
+
+**Step 1: Create Google Cloud Project**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Sign in with your Google account (same one used for Google Drive)
+3. Click "Select a project" → "New Project"
+4. Enter project name (e.g., "Personal Drive Sync")
+5. Click "Create"
+
+**Step 2: Enable Google Drive API**
+1. In left sidebar: "APIs & Services" → "Library"
+2. Search for "Google Drive API"
+3. Click "Google Drive API" → Click "Enable"
+
+**Step 3: Configure OAuth Consent Screen**
+1. Go to "APIs & Services" → "OAuth consent screen"
+2. Select "External" user type
+3. Fill required fields:
+   - App name: "csync" (or preferred name)
+   - User support email: your email
+   - Developer contact: your email
+4. Click "Save and Continue" through all steps
+5. Optional: Add yourself as a test user, or publish the app
+
+**Step 4: Create OAuth Credentials**
+1. Go to "APIs & Services" → "Credentials"
+2. Click "+ Create Credentials" → "OAuth client ID"
+3. Application type: "Desktop application"
+4. Name: "csync-desktop" (or preferred name)
+5. **Important**: Under "Authorized redirect URIs", add exactly:
+   ```
+   http://localhost
+   ```
+6. Click "Create"
+
+**Step 5: Download Credentials**
+1. Click "Download JSON" button
+2. Save file as `credentials.json` in your csync project directory
+
+**Step 6: First-Time Authorization**
+When you run csync for the first time:
+
+1. **Run csync**: `./csync -s ./test -p gdrive -d`
+2. **Copy the authorization URL** that csync displays:
+   ```
+   Go to the following link in your browser then type the authorization code:
+   https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=...
+   ```
+3. **Visit the URL in your browser**
+4. **Sign in** with your Google account (same one for Google Drive access)
+5. **Grant permissions**: Click "Allow" to let csync access your Google Drive
+6. **Browser redirect**: You'll be redirected to `http://localhost` with an error page - **this is expected!**
+7. **Extract authorization code**: Look at the URL in your browser's address bar:
+   ```
+   http://localhost/?state=state-token&code={AUTH_CODE}&scope=https://www.googleapis.com/auth/drive.file
+   ```
+
+   **The authorization code is the long string after `code=` and before `&scope`**:
+   ```
+   AUTH_CODE
+   ```
+
+8. **Copy only the code part** (without `code=` or anything after it)
+9. **Return to terminal** where csync is waiting
+10. **Paste the authorization code** and press **Enter**
+
+**Example of the complete flow:**
+
+```bash
+$ ./csync -s ./documents -p gdrive
+Go to the following link in your browser then type the authorization code:
+https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=643805...
+
+# After visiting URL, signing in, and getting redirected:
+# Browser shows: http://localhost/?state=state-token&code=4/0AVMBsJj...&scope=...
+# You copy AUTH_CODE
+# This is the authorization code and it is the long string after `code=` and before `&scope`
+# You paste it into the terminal and press Enter
+Saving credential file to: token.json
+→ README.md (1.2 KB)
+→ document.txt (856 bytes)
+Sync completed successfully!
+```
+
+csync will then:
+- Exchange the authorization code for access and refresh tokens
+- Save `token.json` for future use (no more browser interaction needed!)
+- Complete the sync operation
+- Upload files to your specified destination path (e.g., `/0-test/documents/`)
+
+**Future Runs**: csync automatically uses the saved `token.json` - no browser interaction needed!
+
 ### pCloud Setup
 
 1. Sign up for a [pCloud account](https://pcloud.com/)
@@ -57,42 +136,51 @@ go install github.com/svosadtsia/csync/cmd/csync@latest
 ### Basic Usage
 
 ```bash
-# One-time sync
-csync -source /path/to/folder -provider gdrive
+# One-time sync (using short flags)
+csync -s /path/to/folder -p gdrive
 
 # Sync to specific provider only
-csync -source ./documents -provider pcloud
+csync -s ./documents -p pcloud
 
 # Sync to both providers
-csync -source ./photos -provider all
+csync -s ./photos -p all
 
 # Dry run to preview changes
-csync -source ./test -provider gdrive -dry-run
+csync -s ./test -p gdrive -d
 
-# Verbose logging
-csync -source ./logs -provider all -verbose
+# Verbose logging (shows detailed information)
+csync -s ./logs -p all -v
+
+# Debug logging (shows very detailed troubleshooting information)
+csync -s ./logs -p all --debug
+
+# Combine verbose and debug
+csync -s ./logs -p all -v --debug
+
+# Long form flags still work
+csync -source ./documents -provider gdrive -dry-run -verbose
 ```
 
 ### Daemon Mode
 
 ```bash
-# Start daemon for continuous sync
-csync -source ./documents -provider gdrive -daemon
+# Start daemon for continuous sync (using short flags)
+csync -s ./documents -p gdrive -daemon
 
 # Start daemon with custom interval
-csync -source ./photos -provider all -daemon -interval 10m
+csync -s ./photos -p all -daemon -interval 10m
 
 # Start daemon with file watching (real-time sync)
-csync -source ./workspace -provider gdrive -daemon -watch
+csync -s ./workspace -p gdrive -daemon -watch
 
 # Daemon control commands
-csync -start -source ./docs -provider gdrive    # Start daemon
-csync -stop                                     # Stop daemon
-csync -status                                   # Show daemon status
-csync -reload                                   # Reload configuration
+csync -start -s ./docs -p gdrive    # Start daemon
+csync -stop                         # Stop daemon
+csync -status                       # Show daemon status
+csync -reload                       # Reload configuration
 
-# Custom daemon settings
-csync -daemon -source ./data -provider all \
+# Custom daemon settings with verbose logging
+csync -daemon -s ./data -p all -v \
       -interval 1h -watch \
       -pid-file /var/run/csync.pid \
       -log-file /var/log/csync.log
@@ -101,41 +189,46 @@ csync -daemon -source ./data -provider all \
 ### Advanced Usage
 
 ```bash
-# Use custom configuration file
-csync -config /path/to/custom-config.json
+# Use custom configuration file (short flag)
+csync -c /path/to/custom-config.json -s ./docs -p gdrive
 
-# Sync to multiple providers
-csync -providers gdrive,pcloud -source ./documents
+# Combine short and long flags
+csync -s ./photos -p gdrive -config ./photo-sync.json -verbose
 
-# Combine options
-csync -source ./photos -providers gdrive -config ./photo-sync.json -verbose
+# Initialize config and then use it
+csync -i                           # Create default csync.json
+csync -p gdrive                    # Use config file (no -s needed if set in config)
+
+# Multiple workers for faster sync
+csync -s ./large-folder -p all -w 10 -v
 ```
 
 ### Command Line Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `-config` | `csync.json` | Path to configuration file |
-| `-source` | *required* | Local directory to sync |
-| `-provider` | *required* | Cloud provider: `gdrive`, `pcloud`, or `all` |
-| `-dry-run` | `false` | Show what would be synced without making changes |
-| `-verbose` | `false` | Enable verbose logging |
-| `-workers` | `0` | Max concurrent workers (0 = use config) |
-| `-init` | `false` | Initialize configuration file with defaults |
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `-config` | `-c` | `csync.json` | Path to configuration file |
+| `-source` | `-s` | *required* | Local directory to sync |
+| `-provider` | `-p` | *required* | Cloud provider: `gdrive`, `pcloud`, or `all` |
+| `-dry-run` | `-d` | `false` | Show what would be synced without making changes |
+| `-verbose` | `-v` | `false` | Enable verbose logging with detailed output |
+| `-debug` | | `false` | Enable detailed debug logging for troubleshooting |
+| `-workers` | `-w` | `0` | Max concurrent workers (0 = use config) |
+| `-init` | `-i` | `false` | Initialize configuration file with defaults |
 
 ### Daemon Mode Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `-daemon` | `false` | Run as daemon (background service) |
-| `-start` | `false` | Start daemon |
-| `-stop` | `false` | Stop daemon |
-| `-status` | `false` | Show daemon status |
-| `-reload` | `false` | Reload daemon configuration |
-| `-interval` | `5m` | Sync interval for daemon mode |
-| `-watch` | `false` | Enable file watching for real-time sync |
-| `-pid-file` | `csync.pid` | PID file location |
-| `-log-file` | `csync.log` | Log file location |
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `-daemon` | | `false` | Run as daemon (background service) |
+| `-start` | | `false` | Start daemon |
+| `-stop` | | `false` | Stop daemon |
+| `-status` | | `false` | Show daemon status |
+| `-reload` | | `false` | Reload daemon configuration |
+| `-interval` | | `5m` | Sync interval for daemon mode |
+| `-watch` | | `false` | Enable file watching for real-time sync |
+| `-pid-file` | | `csync.pid` | PID file location |
+| `-log-file` | | `csync.log` | Log file location |
 
 ## Pattern Filtering
 
@@ -194,22 +287,6 @@ Adjust `max_concurrency` based on your network and system capabilities:
 - **Local network**: `max_concurrency: 10-20`
 - **Home broadband**: `max_concurrency: 5-10`
 - **Mobile/limited**: `max_concurrency: 2-5`
-
-## Error Handling
-
-csync implements comprehensive error handling:
-
-- **Automatic retry**: Failed uploads are retried with exponential backoff
-- **Non-retryable errors**: Authentication and quota errors are not retried
-- **Graceful degradation**: Continues processing other files even if some fail
-- **Detailed logging**: Verbose mode provides detailed error information
-
-## Security
-
-- **OAuth 2.0**: Secure authentication with Google Drive
-- **Token storage**: Access tokens stored securely with restricted permissions
-- **Credential files**: Configuration files use restrictive file permissions (0600)
-- **No plaintext storage**: Sensitive data encrypted at rest where possible
 
 ## Development
 
@@ -283,3 +360,21 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## Vision & Roadmap
 
 For detailed project vision, goals, and roadmap, see [VISION.md](VISION.md).
+
+
+### Quick Start
+
+```bash
+# 1. Initialize minimal config
+csync -i
+
+# 2. Edit csync.json - add your paths
+
+# 3. Setup Google Drive credentials (one time)
+# Follow detailed guide in "Google Drive Setup" section above
+
+# 4. Start syncing
+csync -p gdrive              # Clean output
+csync -p all -v              # Verbose output
+csync -s ./docs -p gdrive -d # Preview changes
+```

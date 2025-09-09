@@ -13,7 +13,6 @@
 
 ## Project Goals
 
-[] Add provider for Google Drive
 [] Add provider for Dropbox
 [] Add provider for OneDrive
 [] Schedule syncs

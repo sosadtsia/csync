@@ -8,6 +8,7 @@ import (
 
 var (
 	verboseMode   bool
+	debugMode     bool
 	cleanLogger   *log.Logger
 	verboseLogger *log.Logger
 )
@@ -22,6 +23,11 @@ func init() {
 // SetVerbose sets the verbose logging mode
 func SetVerbose(v bool) {
 	verboseMode = v
+}
+
+// SetDebug sets the debug logging mode
+func SetDebug(d bool) {
+	debugMode = d
 }
 
 // LogInfo logs an info message (always shown)
@@ -40,9 +46,9 @@ func LogVerbose(format string, args ...interface{}) {
 	}
 }
 
-// LogDebug logs a debug message (only shown in verbose mode)
+// LogDebug logs a debug message (only shown in debug mode)
 func LogDebug(format string, args ...interface{}) {
-	if verboseMode {
+	if debugMode {
 		verboseLogger.Printf("[DEBUG] "+format, args...)
 	}
 }
