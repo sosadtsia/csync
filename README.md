@@ -280,8 +280,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
   - Error messages
   - Steps to reproduce
 
-## Roadmap
+## Vision & Roadmap
 
-- [ ] Additional cloud providers (Dropbox, OneDrive)
-- [ ] Sync scheduling and automation
-- [ ] Bandwidth throttling
+For detailed project vision, goals, and roadmap, see [VISION.md](VISION.md).
