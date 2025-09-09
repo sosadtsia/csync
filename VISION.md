@@ -15,7 +15,6 @@
 
 [] Add provider for Dropbox
 [] Add provider for OneDrive
-[] Schedule syncs
 [] Bandwidth throttling
 
 ## Contributing to the Vision

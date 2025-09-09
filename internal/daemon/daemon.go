@@ -137,6 +137,25 @@ func (d *Daemon) performSync(ctx context.Context, sourcePath, provider string) e
 	start := time.Now()
 	log.Printf("Starting sync operation (provider: %s)", provider)
 
+	// Show destination paths
+	switch provider {
+	case "gdrive":
+		if d.config.GoogleDrive.DestinationPath != "" {
+			log.Printf("Google Drive destination: %s", d.config.GoogleDrive.DestinationPath)
+		}
+	case "pcloud":
+		if d.config.PCloud.DestinationPath != "" {
+			log.Printf("pCloud destination: %s", d.config.PCloud.DestinationPath)
+		}
+	case "all":
+		if d.config.GoogleDrive.DestinationPath != "" {
+			log.Printf("Google Drive destination: %s", d.config.GoogleDrive.DestinationPath)
+		}
+		if d.config.PCloud.DestinationPath != "" {
+			log.Printf("pCloud destination: %s", d.config.PCloud.DestinationPath)
+		}
+	}
+
 	var err error
 	switch provider {
 	case "gdrive":
