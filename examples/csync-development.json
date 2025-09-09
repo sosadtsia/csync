@@ -2,51 +2,38 @@
   "google_drive": {
     "credentials_path": "./dev-credentials.json",
     "token_path": "./dev-token.json",
-    "folder_id": "",
-    "scopes": [
-      "https://www.googleapis.com/auth/drive.file"
-    ],
+    "scopes": ["https://www.googleapis.com/auth/drive.file"],
+    "destination_path": "/dev-backups",
     "metadata": {
       "source": "csync-dev",
-      "environment": "development",
-      "developer": "your-name"
+      "environment": "development"
     }
   },
   "pcloud": {
-    "username": "dev@example.com",
-    "password": "dev-password",
     "api_host": "https://api.pcloud.com",
-    "folder_id": ""
+    "destination_path": "/dev-sync"
   },
   "general": {
+    "source_path": "./src",
     "max_concurrency": 3,
     "retry_attempts": 2,
     "chunk_size_bytes": 4194304,
     "ignore_patterns": [
-      ".git/",
-      ".DS_Store",
-      "Thumbs.db",
-      "*.tmp",
-      "*.temp",
-      ".env",
-      ".env.local",
-      "node_modules/",
-      "dist/",
-      "build/",
-      "target/",
-      "__pycache__/",
-      "*.pyc",
-      ".pytest_cache/",
-      ".coverage",
-      "coverage/",
-      ".nyc_output/",
-      "*.log"
-    ],
-    "include_patterns": [],
-    "daemon_mode": false,
-    "sync_interval": "2m",
-    "watch_mode": false,
-    "pid_file": "./csync-dev.pid",
-    "log_file": "./csync-dev.log"
+      ".git/", ".DS_Store", "Thumbs.db", "*.tmp", "*.temp",
+      ".env", ".env.*", "node_modules/", "dist/", "build/", "target/",
+      "__pycache__/", "*.pyc", ".pytest_cache/", ".coverage", "coverage/",
+      ".nyc_output/", "*.log"
+    ]
+  },
+  "optional": {
+    "logging": {
+      "log_file": "./csync-dev.log",
+      "log_level": "debug",
+      "verbose": true
+    },
+    "advanced": {
+      "skip_existing": false,
+      "preserve_mod_time": true
+    }
   }
 }

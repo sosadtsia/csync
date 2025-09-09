@@ -1,264 +1,158 @@
 # Configuration Examples
 
-This directory contains various configuration examples for `csync` to help you get started quickly with different use cases. The configurations are structured to clearly separate **required** and **optional** parameters.
+This directory contains clean, organized configuration examples for `csync` to help you get started quickly. All examples use the new secure approach with environment variables for credentials.
 
-## Configuration Structure
+## 🔐 Security Best Practices
 
-### Required Sections
-- **`google_drive`**: Google Drive API configuration
-- **`pcloud`**: pCloud API configuration
-- **`general`**: Core sync settings
+### Environment Variables (Recommended)
+**Never store credentials in config files.** Use environment variables instead:
 
-### Optional Section
-- **`optional`**: Advanced features (daemon mode, logging, etc.)
+```bash
+# Set environment variables
+export PCLOUD_USERNAME="your-email@example.com"
+export PCLOUD_PASSWORD="your-secure-password"
 
-## Available Examples
+# Run csync with secure config
+./csync -config examples/csync-secure.json -provider pcloud
+```
 
-### 1. `csync-minimal.json` - Minimal Configuration ⭐
-The absolute minimum configuration needed to run csync.
+### Quick Setup
+```bash
+# Use the setup script
+./scripts/setup-credentials.sh
 
-**Use case**: Getting started quickly with basic sync
-**Features**:
-- Only required fields
-- No optional features
-- Clean and simple
+# Or manually copy example
+cp examples/env-example .env
+# Edit .env with your credentials
+source .env
+```
 
+### Production Deployment
+- Use secret management services (AWS Secrets Manager, HashiCorp Vault)
+- Set environment variables in your deployment system
+- Never commit `.env` files to version control
+- Rotate credentials regularly
+
+## 📁 Destination Paths
+
+You can specify where files should be synced to using **destination paths** (recommended) or **folder IDs**:
+
+### Using Destination Paths (Recommended)
 ```json
 {
   "google_drive": {
-    "credentials_path": "credentials.json",
-    "token_path": "token.json",
-    "scopes": ["https://www.googleapis.com/auth/drive.file"]
+    "destination_path": "/backups/documents"
   },
   "pcloud": {
-    "username": "your-email@example.com",
-    "password": "your-password",
-    "api_host": "https://api.pcloud.com"
-  },
-  "general": {
-    "max_concurrency": 5,
-    "retry_attempts": 3,
-    "chunk_size_bytes": 8388608,
-    "ignore_patterns": [".git/", "*.tmp"]
+    "destination_path": "/sync/photos"
   }
 }
 ```
 
-**Usage**:
-```bash
-csync -config examples/csync-minimal.json -source ./documents -provider gdrive
-```
+**Path Examples:**
+- `/backups/documents` → Creates/uses `/backups/documents/` folder
+- `/photos/2024` → Creates/uses `/photos/2024/` folder
+- `/` or `""` → Uses root folder
 
-### 2. `csync-basic.json` - Basic Configuration
-Standard configuration with common optional features.
+## 📋 Available Examples
 
-**Use case**: Personal file sync with some customization
-**Features**:
-- Basic Google Drive and pCloud setup
-- Standard ignore patterns
-- Optional metadata for file tagging
+### 1. `csync-secure.json` - Secure Configuration ⭐🔐
+**RECOMMENDED** for production use - credentials via environment variables.
 
-**Usage**:
-```bash
-csync -config examples/csync-basic.json -source ./documents -provider gdrive
-```
+**Use case**: Secure deployment without credentials in config files
+**Security**: Uses environment variables for sensitive data
+**Features**: Clean config, destination paths, daemon ready
+
+### 2. `csync-minimal.json` - Minimal Configuration
+The absolute minimum configuration needed to run csync.
+
+**Use case**: Getting started quickly with basic sync
+**Features**: Simple setup, basic ignore patterns
+**Note**: Still includes placeholder credentials - use with env vars
 
 ### 3. `csync-daemon.json` - Production Daemon
-Full-featured configuration for production daemon mode.
+Optimized for server/production daemon deployment.
 
-**Use case**: Server/production environment with continuous sync
-**Features**:
-- Daemon mode enabled in `optional` section
-- Advanced logging configuration
-- Production-optimized settings
-- Document-focused include patterns
+**Use case**: Background service, server backups, automated sync
+**Features**: Advanced settings, comprehensive ignore patterns, system paths
+**Security**: No hardcoded credentials
 
-```json
-{
-  // ... required sections ...
-  "optional": {
-    "daemon": {
-      "enabled": true,
-      "sync_interval": "15m",
-      "watch_mode": true,
-      "pid_file": "/var/run/csync.pid"
-    },
-    "logging": {
-      "log_file": "/var/log/csync.log",
-      "log_level": "info"
-    },
-    "advanced": {
-      "skip_existing": true,
-      "preserve_mod_time": true
-    }
-  }
-}
+### 4. `csync-photos.json` - Media/Photos Sync
+Specialized configuration for photo and media file synchronization.
+
+**Use case**: Photo backup, media archival, large file sync
+**Features**: Media file patterns, large chunk sizes, high concurrency
+**Formats**: Supports RAW, video, and common image formats
+
+### 5. `csync-development.json` - Development Environment
+Tailored for developers syncing source code and projects.
+
+**Use case**: Code backup, project sync, development workflow
+**Features**: Development ignore patterns, verbose logging, fast sync
+**Excludes**: Build artifacts, dependencies, cache files
+
+## 🚀 Configuration Structure
+
+### Required Sections
+- **`google_drive`**: Google Drive API configuration
+- **`pcloud`**: pCloud API configuration including `source_path`
+- **`general`**: Core sync settings including `source_path`
+
+### Optional Section
+- **`optional`**: Advanced features (daemon mode, logging, etc.)
+  - **`daemon`**: Background service settings
+  - **`logging`**: Log file and verbosity settings
+  - **`advanced`**: Performance and behavior tweaks
+
+## 🔧 Usage Examples
+
+### Basic Sync
+```bash
+# Set credentials via environment
+export PCLOUD_USERNAME="user@example.com"
+export PCLOUD_PASSWORD="password"
+
+# Run sync
+./csync -config examples/csync-secure.json -provider pcloud
 ```
 
-**Usage**:
+### Daemon Mode
 ```bash
 # Start daemon
-csync -config examples/csync-daemon.json -source /data/documents -provider all -daemon
+./csync -config examples/csync-daemon.json -daemon -provider all
 
-# Control daemon
-csync -config examples/csync-daemon.json -status
-csync -config examples/csync-daemon.json -stop
+# Check status
+./csync -status
+
+# Stop daemon
+./csync -stop
 ```
 
-### 4. `csync-development.json` - Development Environment
-Configured for development and testing.
+### Development Workflow
+```bash
+# Verbose sync for debugging
+./csync -config examples/csync-development.json -provider pcloud -v
 
-**Use case**: Development environment with frequent changes
-**Features**:
-- Development-optimized settings
-- Local paths for PID and log files
-- Development-focused ignore patterns
-
-### 5. `csync-photos.json` - Media/Photo Backup
-Optimized for syncing photos and media files.
-
-**Use case**: Photo and video backup
-**Features**:
-- Media-specific include patterns
-- Large chunk size for big files
-- Photo-specific ignore patterns
-
-## Configuration Reference
-
-### Required Fields
-
-#### Google Drive (Required)
-```json
-{
-  "credentials_path": "credentials.json",    // OAuth2 credentials file (required)
-  "token_path": "token.json",               // OAuth2 token storage (required)
-  "scopes": ["https://www.googleapis.com/auth/drive.file"]  // API scopes (required)
-}
+# Dry run to see what would sync
+./csync -config examples/csync-development.json -provider pcloud -dry-run
 ```
 
-#### pCloud (Required)
-```json
-{
-  "username": "your-email@example.com",     // pCloud username (required)
-  "password": "your-password",              // pCloud password (required)
-  "api_host": "https://api.pcloud.com"     // API endpoint (required)
-}
-```
+## 🔄 Migration from Old Format
 
-#### General Settings (Required)
-```json
-{
-  "max_concurrency": 5,                     // Concurrent uploads (required)
-  "retry_attempts": 3,                      // Retry failed uploads (required)
-  "chunk_size_bytes": 8388608,              // Upload chunk size (required)
-  "ignore_patterns": ["*.tmp", ".git/"]    // Files to ignore (required)
-}
-```
+If you have old configuration files with credentials, migrate them:
 
-### Optional Fields
+1. **Remove credentials** from JSON files
+2. **Set environment variables** using `./scripts/setup-credentials.sh`
+3. **Update paths** from `folder_id` to `destination_path`
+4. **Add `source_path`** to the `general` section
+5. **Move optional settings** to the `optional` section
 
-#### Google Drive (Optional)
-```json
-{
-  "folder_id": "1ABC...XYZ",                // Target folder ID (empty = root)
-  "metadata": {                             // Custom metadata for uploads
-    "source": "csync",
-    "version": "1.0.0"
-  }
-}
-```
+## 📖 Additional Resources
 
-#### pCloud (Optional)
-```json
-{
-  "folder_id": "12345"                      // Target folder ID (empty = root)
-}
-```
+- **Main README**: `../README.md` - Complete documentation
+- **Security Script**: `../scripts/setup-credentials.sh` - Credential setup helper
+- **Environment Example**: `env-example` - Template for `.env` file
 
-#### General Settings (Optional)
-```json
-{
-  "include_patterns": ["*.pdf", "*.docx"]   // Files to include (if specified)
-}
-```
+---
 
-#### Optional Section
-```json
-{
-  "optional": {
-    "daemon": {
-      "enabled": true,                      // Enable daemon mode
-      "sync_interval": "5m",               // Sync interval
-      "watch_mode": false,                 // Real-time file watching
-      "pid_file": "csync.pid"              // PID file location
-    },
-    "logging": {
-      "log_file": "csync.log",             // Log file location
-      "log_level": "info",                 // Log level (debug, info, warn, error)
-      "verbose": false                     // Verbose output
-    },
-    "advanced": {
-      "skip_existing": true,               // Skip files that already exist
-      "delete_removed": false,             // Delete files removed locally
-      "preserve_mod_time": true,           // Preserve modification times
-      "custom_user_agent": "MyApp/1.0",   // Custom User-Agent header
-      "exclude_folders": ["temp/", "cache/"]  // Additional folder exclusions
-    }
-  }
-}
-```
-
-## Migration from Old Format
-
-If you have an old configuration, here's how to migrate:
-
-**Old Format:**
-```json
-{
-  "general": {
-    "daemon_mode": true,
-    "sync_interval": "5m",
-    "watch_mode": false,
-    "pid_file": "csync.pid",
-    "log_file": "csync.log"
-  }
-}
-```
-
-**New Format:**
-```json
-{
-  "general": {
-    // only core settings here
-  },
-  "optional": {
-    "daemon": {
-      "enabled": true,
-      "sync_interval": "5m",
-      "watch_mode": false,
-      "pid_file": "csync.pid"
-    },
-    "logging": {
-      "log_file": "csync.log"
-    }
-  }
-}
-```
-
-## Getting Started
-
-1. **Start simple**: Copy `csync-minimal.json` for basic usage
-2. **Add features**: Copy sections from other examples as needed
-3. **Update credentials**: Add your API credentials
-4. **Test first**: Always test with `-dry-run` flag
-5. **Add optional features**: Only add the `optional` section when you need advanced features
-
-## Benefits of New Structure
-
-✅ **Clear separation**: Required vs. optional parameters
-✅ **Easier to start**: Minimal config has only essential fields
-✅ **Better organization**: Related settings grouped together
-✅ **Future-proof**: Easy to add new optional features
-✅ **Self-documenting**: Structure shows what's necessary vs. nice-to-have
-
-For more information, see the main [README.md](../README.md) in the project root.
+**Security Reminder**: Always use environment variables for credentials. Never commit sensitive information to version control.

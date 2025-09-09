@@ -3,7 +3,6 @@ package sync
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/svosadtsia/csync/internal/config"
 	"github.com/svosadtsia/csync/internal/providers/gdrive"
@@ -34,8 +33,6 @@ func (m *Manager) SyncToGoogleDrive(ctx context.Context, sourcePath string, dryR
 		m.gdriveClient = client
 	}
 
-	log.Printf("Starting Google Drive sync from: %s", sourcePath)
-
 	if dryRun {
 		return m.gdriveClient.DryRun(ctx, sourcePath)
 	}
@@ -52,8 +49,6 @@ func (m *Manager) SyncToPCloud(ctx context.Context, sourcePath string, dryRun bo
 		}
 		m.pcloudClient = client
 	}
-
-	log.Printf("Starting pCloud sync from: %s", sourcePath)
 
 	if dryRun {
 		return m.pcloudClient.DryRun(ctx, sourcePath)

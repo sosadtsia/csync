@@ -1,0 +1,202 @@
+version: '3'
+
+vars:
+  APP_NAME: csync
+  EXAMPLES_DIR: examples
+  SCRIPTS_DIR: scripts
+  VERSION:
+    sh: cat .version
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # Build tasks
+  build:
+    desc: Build the csync application
+    cmds:
+      - "go build -ldflags='-X main.appVersion={{.VERSION}}' -o {{.APP_NAME}} ./cmd/{{.APP_NAME}}"
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.APP_NAME}}"
+
+  build:release:
+    desc: Build optimized release version
+    cmds:
+      - "go build -ldflags='-s -w -X main.appVersion={{.VERSION}}' -o {{.APP_NAME}} ./cmd/{{.APP_NAME}}"
+
+  build:linux:
+    desc: Build for Linux
+    cmds:
+      - "GOOS=linux GOARCH=amd64 go build -ldflags='-X main.appVersion={{.VERSION}}' -o {{.APP_NAME}}-linux-{{.VERSION}} ./cmd/{{.APP_NAME}}"
+
+  build:windows:
+    desc: Build for Windows
+    cmds:
+      - "GOOS=windows GOARCH=amd64 go build -ldflags='-X main.appVersion={{.VERSION}}' -o {{.APP_NAME}}-windows-{{.VERSION}}.exe ./cmd/{{.APP_NAME}}"
+
+  build:darwin:
+    desc: Build for macOS
+    cmds:
+      - "GOOS=darwin GOARCH=amd64 go build -ldflags='-X main.appVersion={{.VERSION}}' -o {{.APP_NAME}}-darwin-amd64-{{.VERSION}} ./cmd/{{.APP_NAME}}"
+      - "GOOS=darwin GOARCH=arm64 go build -ldflags='-X main.appVersion={{.VERSION}}' -o {{.APP_NAME}}-darwin-arm64-{{.VERSION}} ./cmd/{{.APP_NAME}}"
+
+  build:all:
+    desc: Build for all platforms
+    deps: [build:linux, build:windows, build:darwin]
+
+  # Development tasks
+  dev:
+    desc: Build and run with example config
+    deps: [build]
+    cmds:
+      - "echo 'Make sure to set PCLOUD_USERNAME and PCLOUD_PASSWORD environment variables'"
+      - "./{{.APP_NAME}} -config {{.EXAMPLES_DIR}}/csync-secure.json -provider pcloud -dry-run -v"
+
+  run:minimal:
+    desc: Run with minimal config (dry-run)
+    deps: [build]
+    cmds:
+      - "./{{.APP_NAME}} -config {{.EXAMPLES_DIR}}/csync-minimal.json -provider pcloud -dry-run"
+
+  run:secure:
+    desc: Run with secure config (requires env vars)
+    deps: [build]
+    cmds:
+      - "./{{.APP_NAME}} -config {{.EXAMPLES_DIR}}/csync-secure.json -provider pcloud -dry-run"
+
+  # Linting and code quality
+  lint:
+    desc: Run Go linter (golangci-lint)
+    cmds:
+      - golangci-lint run ./...
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+
+  vet:
+    desc: Run Go vet
+    cmds:
+      - go vet ./...
+
+  check:
+    desc: Run all code quality checks
+    deps: [fmt, vet, lint]
+
+  # Testing tasks
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...
+
+  test:verbose:
+    desc: Run tests with verbose output
+    cmds:
+      - go test -v ./...
+
+  test:coverage:
+    desc: Run tests with coverage
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - "echo 'Coverage report generated: coverage.html'"
+
+  # Dependency management
+  deps:
+    desc: Download and tidy dependencies
+    cmds:
+      - go mod download
+      - go mod tidy
+
+  deps:update:
+    desc: Update dependencies
+    cmds:
+      - go get -u ./...
+      - go mod tidy
+
+  # Scripts and utilities
+  setup:
+    desc: Run credential setup script
+    cmds:
+      - "chmod +x {{.SCRIPTS_DIR}}/setup-credentials.sh"
+      - "./{{.SCRIPTS_DIR}}/setup-credentials.sh"
+
+  # Cleanup tasks
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - "rm -f {{.APP_NAME}}"
+      - "rm -f {{.APP_NAME}}-*"
+      - "rm -f {{.APP_NAME}}.exe"
+      - "rm -f coverage.out coverage.html"
+      - "rm -f *.pid *.log"
+
+  # Version management
+  version:
+    desc: Show current version
+    cmds:
+      - "echo 'Current version: {{.VERSION}}'"
+
+  version:patch:
+    desc: Bump patch version (1.0.0 -> 1.0.1)
+    cmds:
+      - |
+        current=$(cat .version)
+        IFS='.' read -ra parts <<< "$current"
+        major=${parts[0]}
+        minor=${parts[1]}
+        patch=$((${parts[2]} + 1))
+        echo "$major.$minor.$patch" > .version
+        echo "Version bumped to $(cat .version)"
+
+  version:minor:
+    desc: Bump minor version (1.0.0 -> 1.1.0)
+    cmds:
+      - |
+        current=$(cat .version)
+        IFS='.' read -ra parts <<< "$current"
+        major=${parts[0]}
+        minor=$((${parts[1]} + 1))
+        echo "$major.$minor.0" > .version
+        echo "Version bumped to $(cat .version)"
+
+  version:major:
+    desc: Bump major version (1.0.0 -> 2.0.0)
+    cmds:
+      - |
+        current=$(cat .version)
+        IFS='.' read -ra parts <<< "$current"
+        major=$((${parts[0]} + 1))
+        echo "$major.0.0" > .version
+        echo "Version bumped to $(cat .version)"
+
+  # Release tasks
+  release:
+    desc: Create a release build
+    deps: [clean, test, build:release]
+    cmds:
+      - "echo 'Release build completed for version {{.VERSION}}'"
+      - "echo 'Binary: {{.APP_NAME}}'"
+
+  release:all:
+    desc: Create release builds for all platforms
+    deps: [clean, test, build:all]
+    cmds:
+      - "echo 'Multi-platform release completed for version {{.VERSION}}'"
+      - "ls -la {{.APP_NAME}}-*"
+
+  info:
+    desc: Show project information
+    cmds:
+      - "echo 'Project: csync'"
+      - "echo 'Version: {{.VERSION}}'"
+      - "echo 'Go version:' $(go version)"
+      - "echo 'Available examples:'"
+      - "ls -1 {{.EXAMPLES_DIR}}/*.json"

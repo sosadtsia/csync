@@ -2,64 +2,46 @@
   "google_drive": {
     "credentials_path": "credentials.json",
     "token_path": "token.json",
-    "folder_id": "1PhotosFolderIDHere123456789",
-    "scopes": [
-      "https://www.googleapis.com/auth/drive.file"
-    ],
+    "scopes": ["https://www.googleapis.com/auth/drive.file"],
+    "destination_path": "/photos/backup",
     "metadata": {
       "source": "csync-photos",
-      "content_type": "media",
-      "backup_purpose": "photo_archive"
+      "content_type": "media"
     }
   },
   "pcloud": {
-    "username": "photographer@example.com",
-    "password": "secure-photo-password",
     "api_host": "https://api.pcloud.com",
-    "folder_id": "photos_backup"
+    "destination_path": "/photo-archives/2024"
   },
   "general": {
+    "source_path": "./photos",
     "max_concurrency": 8,
     "retry_attempts": 5,
     "chunk_size_bytes": 33554432,
     "ignore_patterns": [
-      ".DS_Store",
-      "Thumbs.db",
-      "desktop.ini",
-      "*.tmp",
-      "*.temp",
-      ".picasa.ini",
-      ".picasaoriginals/",
-      "@eaDir/",
-      ".@__thumb/"
+      ".DS_Store", "Thumbs.db", "desktop.ini", "*.tmp", "*.temp",
+      ".picasa.ini", ".picasaoriginals/", "@eaDir/", ".@__thumb/"
     ],
     "include_patterns": [
-      "*.jpg",
-      "*.jpeg",
-      "*.png",
-      "*.gif",
-      "*.bmp",
-      "*.tiff",
-      "*.tif",
-      "*.webp",
-      "*.raw",
-      "*.cr2",
-      "*.nef",
-      "*.arw",
-      "*.dng",
-      "*.mp4",
-      "*.mov",
-      "*.avi",
-      "*.mkv",
-      "*.m4v",
-      "*.wmv",
-      "*.flv",
-      "*.webm"
-    ],
-    "daemon_mode": true,
-    "sync_interval": "30m",
-    "watch_mode": true,
-    "pid_file": "csync-photos.pid",
-    "log_file": "csync-photos.log"
+      "*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp", "*.tiff", "*.tif",
+      "*.webp", "*.raw", "*.cr2", "*.nef", "*.arw", "*.dng",
+      "*.mp4", "*.mov", "*.avi", "*.mkv", "*.m4v", "*.wmv", "*.flv", "*.webm"
+    ]
+  },
+  "optional": {
+    "daemon": {
+      "enabled": true,
+      "sync_interval": "30m",
+      "watch_mode": true,
+      "pid_file": "csync-photos.pid"
+    },
+    "logging": {
+      "log_file": "csync-photos.log",
+      "log_level": "info"
+    },
+    "advanced": {
+      "skip_existing": true,
+      "preserve_mod_time": true
+    }
   }
 }

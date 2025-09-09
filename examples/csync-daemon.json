@@ -2,49 +2,29 @@
   "google_drive": {
     "credentials_path": "/etc/csync/credentials.json",
     "token_path": "/var/lib/csync/token.json",
-    "scopes": [
-      "https://www.googleapis.com/auth/drive.file"
-    ],
-    "folder_id": "1ABCDEFGHIJKLMNOPqrstuvwxyz123456",
+    "scopes": ["https://www.googleapis.com/auth/drive.file"],
+    "destination_path": "/backups/server-data",
     "metadata": {
       "source": "csync-daemon",
-      "environment": "production",
-      "version": "1.0.0"
+      "environment": "production"
     }
   },
   "pcloud": {
-    "username": "production@company.com",
-    "password": "secure-password-here",
     "api_host": "https://api.pcloud.com",
-    "folder_id": "12345"
+    "destination_path": "/server-backups/daily"
   },
   "general": {
+    "source_path": "/home/user/documents",
     "max_concurrency": 10,
     "retry_attempts": 5,
     "chunk_size_bytes": 16777216,
     "ignore_patterns": [
-      ".git/",
-      ".DS_Store",
-      "Thumbs.db",
-      "*.tmp",
-      "*.temp",
-      "*.swp",
-      "*~",
-      ".env",
-      ".env.*",
-      "node_modules/",
-      "__pycache__/",
-      "*.pyc",
-      ".cache/",
-      "logs/*.log"
+      ".git/", ".DS_Store", "Thumbs.db", "*.tmp", "*.temp",
+      "*.swp", "*~", ".env", ".env.*", "node_modules/",
+      "__pycache__/", "*.pyc", ".cache/", "logs/*.log"
     ],
     "include_patterns": [
-      "*.pdf",
-      "*.docx",
-      "*.xlsx",
-      "*.pptx",
-      "*.txt",
-      "*.md"
+      "*.pdf", "*.docx", "*.xlsx", "*.pptx", "*.txt", "*.md"
     ]
   },
   "optional": {

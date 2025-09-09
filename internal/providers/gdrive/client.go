@@ -335,11 +335,22 @@ func (c *Client) findFile(ctx context.Context, name, parentID string) (string, e
 
 // getFolderID gets the folder ID for a given path
 func (c *Client) getFolderID(ctx context.Context, folderPath string) (string, error) {
-	parts := strings.Split(folderPath, string(filepath.Separator))
+	// Start from the configured destination path if specified
+	var basePath string
+	if c.config.DestinationPath != "" {
+		basePath = c.config.DestinationPath
+	}
+
+	// Combine base path with relative folder path
+	if basePath != "" {
+		folderPath = filepath.Join(basePath, folderPath)
+	}
+
+	parts := strings.Split(strings.Trim(folderPath, "/"), "/")
 
 	parentID := c.config.FolderID
 	if parentID == "" {
-		parentID = "root"
+		parentID = "root" // Google Drive root
 	}
 
 	for _, part := range parts {

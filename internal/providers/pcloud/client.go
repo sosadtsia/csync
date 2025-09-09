@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -36,15 +35,15 @@ type APIResponse struct {
 // FileResponse represents a file operation response
 type FileResponse struct {
 	APIResponse
-	FileID   int64                  `json:"fileid,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	FileID   int64       `json:"fileid,omitempty"`
+	Metadata interface{} `json:"metadata,omitempty"`
 }
 
 // FolderResponse represents a folder operation response
 type FolderResponse struct {
 	APIResponse
-	FolderID int64                  `json:"folderid,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	FolderID int64       `json:"folderid,omitempty"`
+	Metadata interface{} `json:"metadata,omitempty"`
 }
 
 // NewClient creates a new pCloud client
@@ -66,6 +65,7 @@ func NewClient(cfg *config.PCloudConfig) (*Client, error) {
 
 // authenticate performs authentication with pCloud
 func (c *Client) authenticate() error {
+	// pCloud uses /userinfo endpoint for authentication with credentials
 	url := fmt.Sprintf("%s/userinfo", c.config.APIHost)
 
 	data := map[string]string{
@@ -73,14 +73,22 @@ func (c *Client) authenticate() error {
 		"password": c.config.Password,
 	}
 
-	resp, err := c.makeRequest("GET", url, data, nil)
+	resp, err := c.makeRequest("POST", url, data, nil)
 	if err != nil {
 		return fmt.Errorf("authentication request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	utils.LogDebug("pCloud auth response: %s", string(body))
+
 	var apiResp APIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := json.Unmarshal(body, &apiResp); err != nil {
 		return fmt.Errorf("failed to decode authentication response: %w", err)
 	}
 
@@ -88,14 +96,16 @@ func (c *Client) authenticate() error {
 		return fmt.Errorf("authentication failed: %s", apiResp.Error)
 	}
 
-	c.authToken = apiResp.AuthToken
-	log.Println("Successfully authenticated with pCloud")
+	// For pCloud, successful userinfo call means we're authenticated
+	// We'll use username/password for subsequent requests
+	c.authToken = "authenticated" // Just a flag to indicate successful auth
+	utils.LogVerbose("Successfully authenticated with pCloud (%s)", c.config.Username)
 	return nil
 }
 
 // Sync syncs a directory to pCloud
 func (c *Client) Sync(ctx context.Context, sourcePath string) error {
-	log.Printf("Starting pCloud sync from: %s", sourcePath)
+	utils.LogVerbose("Starting pCloud sync from: %s", sourcePath)
 
 	return filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -128,7 +138,7 @@ func (c *Client) Sync(ctx context.Context, sourcePath string) error {
 
 // DryRun shows what would be synced without actually syncing
 func (c *Client) DryRun(ctx context.Context, sourcePath string) error {
-	log.Printf("DRY RUN: pCloud sync from: %s", sourcePath)
+	utils.LogVerbose("DRY RUN: pCloud sync from: %s", sourcePath)
 
 	return filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -152,9 +162,9 @@ func (c *Client) DryRun(ctx context.Context, sourcePath string) error {
 		}
 
 		if info.IsDir() {
-			log.Printf("[DRY RUN] Would create folder: %s", relPath)
+			utils.LogInfo("→ %s/ (folder)", relPath)
 		} else {
-			log.Printf("[DRY RUN] Would upload file: %s (%d bytes)", relPath, info.Size())
+			utils.LogInfo("→ %s (%d bytes)", relPath, info.Size())
 		}
 
 		return nil
@@ -189,7 +199,8 @@ func (c *Client) createFolder(ctx context.Context, folderPath string) error {
 		// Create the folder
 		url := fmt.Sprintf("%s/createfolder", c.config.APIHost)
 		data := map[string]string{
-			"auth":     c.authToken,
+			"username": c.config.Username,
+			"password": c.config.Password,
 			"name":     part,
 			"folderid": parentFolderID,
 		}
@@ -209,7 +220,7 @@ func (c *Client) createFolder(ctx context.Context, folderPath string) error {
 			return fmt.Errorf("failed to create folder %s: %s", part, folderResp.Error)
 		}
 
-		log.Printf("Created folder: %s", part)
+		utils.LogVerbose("Created folder: %s", part)
 		parentFolderID = strconv.FormatInt(folderResp.FolderID, 10)
 	}
 
@@ -229,24 +240,30 @@ func (c *Client) uploadFile(ctx context.Context, localPath, remotePath string) e
 		return fmt.Errorf("failed to get file info: %w", err)
 	}
 
-	// Determine parent folder
-	parentFolderID := c.config.FolderID
-	if parentFolderID == "" {
-		parentFolderID = "0"
+	// Determine parent folder using destination path
+	var targetPath string
+	if c.config.DestinationPath != "" {
+		// Combine destination path with the directory part of remotePath
+		dir := filepath.Dir(remotePath)
+		if dir == "." {
+			targetPath = c.config.DestinationPath
+		} else {
+			targetPath = filepath.Join(c.config.DestinationPath, dir)
+		}
+	} else {
+		targetPath = filepath.Dir(remotePath)
 	}
 
-	// Create parent directories if needed
-	dir := filepath.Dir(remotePath)
-	if dir != "." {
-		if err := c.createFolder(ctx, dir); err != nil {
-			return fmt.Errorf("failed to create parent folders: %w", err)
-		}
+	// Create the target directory structure
+	if err := c.createFolder(ctx, targetPath); err != nil {
+		return fmt.Errorf("failed to create target folders: %w", err)
+	}
 
-		folderID, err := c.getFolderID(ctx, dir)
-		if err != nil {
-			return fmt.Errorf("failed to get parent folder ID: %w", err)
-		}
-		parentFolderID = folderID
+	// Get the folder ID for the target path
+	// We pass an empty path to getFolderID since targetPath is already the full path
+	parentFolderID, err := c.getFolderIDDirect(ctx, targetPath)
+	if err != nil {
+		return fmt.Errorf("failed to get target folder ID: %w", err)
 	}
 
 	// Upload the file
@@ -255,8 +272,9 @@ func (c *Client) uploadFile(ctx context.Context, localPath, remotePath string) e
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	// Add auth token
-	writer.WriteField("auth", c.authToken)
+	// Add authentication credentials
+	writer.WriteField("username", c.config.Username)
+	writer.WriteField("password", c.config.Password)
 	writer.WriteField("folderid", parentFolderID)
 
 	// Add file
@@ -293,7 +311,7 @@ func (c *Client) uploadFile(ctx context.Context, localPath, remotePath string) e
 		return fmt.Errorf("upload failed: %s", fileResp.Error)
 	}
 
-	log.Printf("Uploaded file: %s (%d bytes)", remotePath, fileInfo.Size())
+	utils.LogInfo("✓ %s (%d bytes)", remotePath, fileInfo.Size())
 	return nil
 }
 
@@ -301,7 +319,8 @@ func (c *Client) uploadFile(ctx context.Context, localPath, remotePath string) e
 func (c *Client) findFolder(ctx context.Context, name, parentFolderID string) (string, error) {
 	url := fmt.Sprintf("%s/listfolder", c.config.APIHost)
 	data := map[string]string{
-		"auth":     c.authToken,
+		"username": c.config.Username,
+		"password": c.config.Password,
 		"folderid": parentFolderID,
 	}
 
@@ -342,11 +361,22 @@ func (c *Client) findFolder(ctx context.Context, name, parentFolderID string) (s
 
 // getFolderID gets the folder ID for a given path
 func (c *Client) getFolderID(ctx context.Context, folderPath string) (string, error) {
-	parts := strings.Split(folderPath, string(filepath.Separator))
+	// Start from the configured destination path if specified
+	var basePath string
+	if c.config.DestinationPath != "" {
+		basePath = c.config.DestinationPath
+	}
+
+	// Combine base path with relative folder path
+	if basePath != "" {
+		folderPath = filepath.Join(basePath, folderPath)
+	}
+
+	parts := strings.Split(strings.Trim(folderPath, "/"), "/")
 
 	parentFolderID := c.config.FolderID
 	if parentFolderID == "" {
-		parentFolderID = "0"
+		parentFolderID = "0" // Root folder
 	}
 
 	for _, part := range parts {
@@ -406,4 +436,33 @@ func (c *Client) makeRequest(method, url string, data map[string]string, body io
 	}
 
 	return c.httpClient.Do(req)
+}
+
+// getFolderIDDirect gets the folder ID for a given absolute path (without adding destination path)
+func (c *Client) getFolderIDDirect(ctx context.Context, folderPath string) (string, error) {
+	parts := strings.Split(strings.Trim(folderPath, "/"), "/")
+
+	parentFolderID := c.config.FolderID
+	if parentFolderID == "" {
+		parentFolderID = "0" // Root folder
+	}
+
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+
+		folderID, err := c.findFolder(ctx, part, parentFolderID)
+		if err != nil {
+			return "", err
+		}
+
+		if folderID == "" {
+			return "", fmt.Errorf("folder not found: %s", part)
+		}
+
+		parentFolderID = folderID
+	}
+
+	return parentFolderID, nil
 }

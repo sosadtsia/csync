@@ -1,0 +1,15 @@
+# csync Environment Variables Example
+# Copy this file to .env and fill in your actual credentials
+
+# pCloud Credentials (Required for pCloud sync)
+export PCLOUD_USERNAME="your-email@example.com"
+export PCLOUD_PASSWORD="your-secure-password"
+
+# Google Drive Credentials (Optional - override default paths)
+# export GOOGLE_CREDENTIALS_PATH="/path/to/your/credentials.json"
+# export GOOGLE_TOKEN_PATH="/path/to/your/token.json"
+
+# Usage:
+# 1. Copy this file: cp env-example .env
+# 2. Edit .env with your actual credentials
+# 3. Source before running: source .env && ./csync [options]

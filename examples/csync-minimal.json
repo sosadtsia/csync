@@ -7,11 +7,10 @@
     ]
   },
   "pcloud": {
-    "username": "your-email@example.com",
-    "password": "your-password",
     "api_host": "https://api.pcloud.com"
   },
   "general": {
+    "source_path": "./documents",
     "max_concurrency": 5,
     "retry_attempts": 3,
     "chunk_size_bytes": 8388608,

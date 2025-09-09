@@ -37,48 +37,6 @@ go build -o csync ./cmd/csync
 go install github.com/svosadtsia/csync/cmd/csync@latest
 ```
 
-## Configuration
-
-On first run, csync creates a default configuration file (`csync.json`):
-
-```json
-{
-  "google_drive": {
-    "credentials_path": "credentials.json",
-    "token_path": "token.json",
-    "folder_id": "",
-    "scopes": [
-      "https://www.googleapis.com/auth/drive.file"
-    ],
-    "metadata": {}
-  },
-  "pcloud": {
-    "username": "",
-    "password": "",
-    "api_host": "https://api.pcloud.com",
-    "folder_id": ""
-  },
-  "general": {
-    "max_concurrency": 5,
-    "retry_attempts": 3,
-    "chunk_size_bytes": 8388608,
-    "ignore_patterns": [
-      ".git/",
-      ".DS_Store",
-      "Thumbs.db",
-      "*.tmp",
-      "*.temp"
-    ],
-    "include_patterns": [],
-    "daemon_mode": false,
-    "sync_interval": "5m",
-    "watch_mode": false,
-    "pid_file": "csync.pid",
-    "log_file": "csync.log"
-  }
-}
-```
-
 ### Google Drive Setup
 
 1. Visit the [Google Cloud Console](https://console.cloud.google.com/)
@@ -281,7 +239,7 @@ go test -cover ./...
 go test ./internal/scanner
 
 # Verbose test output
-go test -v ./...
+go test -verbose ./...
 ```
 
 ### Building
@@ -309,7 +267,7 @@ GOOS=darwin GOARCH=amd64 go build -o csync-darwin-amd64 ./cmd/csync
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
@@ -324,10 +282,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
-- [ ] Two-way sync support
-- [ ] Conflict resolution strategies
 - [ ] Additional cloud providers (Dropbox, OneDrive)
-- [ ] Web interface for configuration
 - [ ] Sync scheduling and automation
 - [ ] Bandwidth throttling
-- [ ] File versioning support

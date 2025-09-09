@@ -1,0 +1,3 @@
+Test file for pCloud sync
+New test
+Test #1

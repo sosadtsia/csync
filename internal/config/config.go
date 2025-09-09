@@ -21,25 +21,28 @@ type GoogleDriveConfig struct {
 	TokenPath       string   `json:"token_path"`
 	Scopes          []string `json:"scopes"`
 
-	// Optional fields
-	FolderID string            `json:"folder_id,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	// Optional fields - specify either folder_id OR destination_path
+	FolderID        string            `json:"folder_id,omitempty"`        // Specific folder ID
+	DestinationPath string            `json:"destination_path,omitempty"` // Folder path like "/backups/documents"
+	Metadata        map[string]string `json:"metadata,omitempty"`
 }
 
 // PCloudConfig contains pCloud API configuration
 type PCloudConfig struct {
-	// Required fields
-	Username string `json:"username"`
-	Password string `json:"password"`
+	// Required fields - can be set via environment variables
+	Username string `json:"username,omitempty"` // Can use PCLOUD_USERNAME env var
+	Password string `json:"password,omitempty"` // Can use PCLOUD_PASSWORD env var
 	APIHost  string `json:"api_host"`
 
-	// Optional fields
-	FolderID string `json:"folder_id,omitempty"`
+	// Optional fields - specify either folder_id OR destination_path
+	FolderID        string `json:"folder_id,omitempty"`        // Specific folder ID
+	DestinationPath string `json:"destination_path,omitempty"` // Folder path like "/backups/photos"
 }
 
 // GeneralConfig contains general application settings
 type GeneralConfig struct {
 	// Required/Core settings
+	SourcePath     string   `json:"source_path"` // Local directory to sync from
 	MaxConcurrency int      `json:"max_concurrency"`
 	RetryAttempts  int      `json:"retry_attempts"`
 	ChunkSizeBytes int64    `json:"chunk_size_bytes"`
@@ -99,6 +102,7 @@ func DefaultConfig() *Config {
 			APIHost: "https://api.pcloud.com",
 		},
 		General: GeneralConfig{
+			SourcePath:     "", // Must be specified by user
 			MaxConcurrency: 5,
 			RetryAttempts:  3,
 			ChunkSizeBytes: 8 * 1024 * 1024, // 8MB
@@ -130,6 +134,7 @@ func MinimalConfig() *Config {
 			APIHost:  "https://api.pcloud.com",
 		},
 		General: GeneralConfig{
+			SourcePath:     "./documents", // Example source path
 			MaxConcurrency: 5,
 			RetryAttempts:  3,
 			ChunkSizeBytes: 8 * 1024 * 1024,
@@ -203,7 +208,29 @@ func Load(path string) (*Config, error) {
 		cfg.General.ChunkSizeBytes = defaultCfg.General.ChunkSizeBytes
 	}
 
+	// Apply environment variable overrides for sensitive data
+	cfg.applyEnvOverrides()
+
 	return &cfg, nil
+}
+
+// applyEnvOverrides applies environment variable overrides for sensitive data
+func (c *Config) applyEnvOverrides() {
+	// pCloud credentials
+	if username := os.Getenv("PCLOUD_USERNAME"); username != "" {
+		c.PCloud.Username = username
+	}
+	if password := os.Getenv("PCLOUD_PASSWORD"); password != "" {
+		c.PCloud.Password = password
+	}
+
+	// Google Drive credentials path (can be overridden)
+	if credsPath := os.Getenv("GOOGLE_CREDENTIALS_PATH"); credsPath != "" {
+		c.GoogleDrive.CredentialsPath = credsPath
+	}
+	if tokenPath := os.Getenv("GOOGLE_TOKEN_PATH"); tokenPath != "" {
+		c.GoogleDrive.TokenPath = tokenPath
+	}
 }
 
 // Save writes the configuration to a file

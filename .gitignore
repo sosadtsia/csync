@@ -36,6 +36,13 @@ go.work.sum
 
 # csync specific
 csync
+csync-*
 csync.json
 credentials.json
 token.json
+
+# Security - never commit these
+.env
+*.env
+.env.*
+!.env.example
