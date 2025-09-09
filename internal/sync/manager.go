@@ -23,6 +23,11 @@ func NewManager(cfg *config.Config) *Manager {
 	}
 }
 
+// GetConfig returns the manager's configuration
+func (m *Manager) GetConfig() *config.Config {
+	return m.config
+}
+
 // SyncToGoogleDrive syncs files to Google Drive
 func (m *Manager) SyncToGoogleDrive(ctx context.Context, sourcePath string, dryRun bool) error {
 	if m.gdriveClient == nil {

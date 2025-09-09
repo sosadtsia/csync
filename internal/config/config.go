@@ -69,6 +69,7 @@ type DaemonConfig struct {
 	Enabled      bool   `json:"enabled"`
 	SyncInterval string `json:"sync_interval"`
 	WatchMode    bool   `json:"watch_mode"`
+	Background   bool   `json:"background"`
 	PidFile      string `json:"pid_file"`
 }
 
@@ -153,6 +154,7 @@ func DaemonModeConfig() *Config {
 			Enabled:      true,
 			SyncInterval: "5m",
 			WatchMode:    false,
+			Background:   false,
 			PidFile:      "csync.pid",
 		},
 		Logging: &LoggingConfig{
@@ -275,9 +277,14 @@ func (c *Config) GetSyncInterval() string {
 	return "5m" // default
 }
 
-// IsWatchMode returns true if file watching is enabled
+// IsWatchMode returns whether file watching is enabled
 func (c *Config) IsWatchMode() bool {
 	return c.Optional != nil && c.Optional.Daemon != nil && c.Optional.Daemon.WatchMode
+}
+
+// IsBackgroundMode returns whether daemon should run in background
+func (c *Config) IsBackgroundMode() bool {
+	return c.Optional != nil && c.Optional.Daemon != nil && c.Optional.Daemon.Background
 }
 
 // GetPidFile returns the PID file path or default
