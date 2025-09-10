@@ -1,6 +1,6 @@
 # csync
 
-A cloud drive synchronization tool written in that syncs local folders to Google Drive and pCloud.
+A cloud drive synchronization tool that syncs local folders to cloud drives.
 
 ## Installation
 
@@ -15,7 +15,7 @@ A cloud drive synchronization tool written in that syncs local folders to Google
 ```bash
 git clone https://github.com/svosadtsia/csync.git
 cd csync
-go build -o csync ./cmd/csync
+task build
 ```
 
 ### Install via go install
@@ -145,21 +145,6 @@ csync -s ./documents -p pcloud
 # Sync to both providers
 csync -s ./photos -p all
 
-# Run regular sync in background (detached from terminal)
-csync -s ./documents -p gdrive -b
-
-# Background sync with logging
-csync -s ./documents -p all -b -l ./sync.log
-
-# Sync with logging to file
-csync -s ./documents -p gdrive -l /var/log/csync.log
-
-# Start background daemon for continuous sync
-csync -s ./documents -p gdrive -daemon -b
-
-# Background daemon with real-time sync and logging
-csync -s ./workspace -p all -daemon -b -watch -interval 1h -l ./logs/csync.log
-
 # Dry run to preview changes
 csync -s ./test -p gdrive -d
 
@@ -169,11 +154,11 @@ csync -s ./logs -p all -v
 # Debug logging (shows very detailed troubleshooting information)
 csync -s ./logs -p all --debug
 
-# Combine verbose and debug with log file
-csync -s ./logs -p all -v --debug -l ./debug.log
+# Combine verbose and debug
+csync -s ./logs -p all -v --debug
 
 # Long form flags still work
-csync -source ./documents -provider gdrive -dry-run -verbose -log-file ./sync.log
+csync -source ./documents -provider gdrive -dry-run -verbose
 ```
 
 ### Daemon Mode
@@ -182,25 +167,11 @@ csync -source ./documents -provider gdrive -dry-run -verbose -log-file ./sync.lo
 # Start daemon for continuous sync (using short flags)
 csync -s ./documents -p gdrive -daemon
 
-# Start daemon in background (detached from terminal)
-csync -s ./documents -p gdrive -daemon -background
-csync -s ./documents -p gdrive -daemon -b  # Short flag
-
-# Start daemon with logging to file
-csync -s ./documents -p gdrive -daemon -l /var/log/csync.log
-
 # Start daemon with custom interval
 csync -s ./photos -p all -daemon -interval 10m
 
 # Start daemon with file watching (real-time sync)
 csync -s ./workspace -p gdrive -daemon -watch
-
-# Combined: background daemon with real-time sync and logging
-csync -s ./workspace -p all -daemon -background -watch -interval 1h -l ./logs/csync.log
-
-# Production setup with all features
-csync -s ./production-data -p all -daemon -b -watch -interval 30m \
-      -v -l /var/log/csync.log -pid-file /var/run/csync.pid
 
 # Daemon control commands
 csync -start -s ./docs -p gdrive    # Start daemon
@@ -210,196 +181,10 @@ csync -reload                       # Reload configuration
 
 # Custom daemon settings with verbose logging
 csync -daemon -s ./data -p all -v \
-      -interval 1h -watch -background \
+      -interval 1h -watch \
       -pid-file /var/run/csync.pid \
       -log-file /var/log/csync.log
 ```
-
-## Scheduling Daemon Mode
-
-csync provides flexible scheduling options for continuous synchronization. Choose the approach that best fits your needs:
-
-### 1. **Interval-Based Scheduling** (Time-based sync)
-
-Sync at regular time intervals regardless of file changes:
-
-```bash
-# Every 5 minutes (default)
-csync -s ./documents -p gdrive -daemon -b -l ./sync.log
-
-# Every 10 minutes
-csync -s ./documents -p all -daemon -b -interval 10m -l ./sync.log
-
-# Every hour
-csync -s ./backups -p gdrive -daemon -b -interval 1h -l ./hourly.log
-
-# Every 6 hours
-csync -s ./archives -p pcloud -daemon -b -interval 6h -l ./daily.log
-
-# Daily sync (24 hours)
-csync -s ./photos -p all -daemon -b -interval 24h -l ./daily-sync.log
-```
-
-**Interval Format Examples:**
-- `30s` - Every 30 seconds
-- `5m` - Every 5 minutes
-- `1h` - Every hour
-- `12h` - Every 12 hours
-- `24h` - Daily
-
-### 2. **Real-Time Scheduling** (File watching)
-
-Sync immediately when files change:
-
-```bash
-# Instant sync on file changes
-csync -s ./active-project -p gdrive -daemon -b -watch -l ./realtime.log
-
-# Watch mode with both providers
-csync -s ./workspace -p all -daemon -b -watch -l ./watch.log
-
-# Real-time + periodic backup (recommended)
-csync -s ./important-docs -p all -daemon -b -watch -interval 2h -l ./hybrid.log
-```
-
-### 3. **Hybrid Scheduling** (Best of both worlds)
-
-Combine real-time sync with periodic backups:
-
-```bash
-# Real-time sync + hourly backup
-csync -s ./workspace -p all -daemon -b \
-      -watch -interval 1h \
-      -l /var/log/csync-hybrid.log
-
-# Real-time sync + daily full sync
-csync -s ~/Documents -p all -daemon -b \
-      -watch -interval 24h \
-      -v -l /var/log/csync-daily.log
-```
-
-### 4. **Production Scheduling Setup**
-
-Complete setup for production environments:
-
-```bash
-# Create directories
-sudo mkdir -p /var/log/csync /var/run
-
-# Start production daemon
-csync -s ~/critical-data -p all -daemon -b \
-      -watch -interval 30m \
-      -v -l /var/log/csync/production.log \
-      -pid-file /var/run/csync.pid
-
-# Verify daemon is running
-csync -status
-
-# Monitor logs
-tail -f /var/log/csync/production.log
-```
-
-### 5. **Multiple Scheduled Daemons**
-
-Run different schedules for different directories:
-
-```bash
-# Fast sync for active work
-csync -s ~/active-projects -p gdrive -daemon -b \
-      -watch -interval 5m \
-      -l /var/log/csync-work.log \
-      -pid-file /var/run/csync-work.pid
-
-# Daily backup for archives
-csync -s ~/archives -p pcloud -daemon -b \
-      -interval 24h \
-      -l /var/log/csync-archive.log \
-      -pid-file /var/run/csync-archive.pid
-```
-
-### 6. **Daemon Management Commands**
-
-```bash
-# Start specific daemon configuration
-csync -start -s ./docs -p gdrive -interval 15m
-
-# Check daemon status
-csync -status
-
-# Stop running daemon
-csync -stop
-
-# Reload configuration (applies new settings)
-csync -reload
-
-# View daemon logs
-tail -f /var/log/csync.log
-
-# Check daemon process
-ps aux | grep csync
-```
-
-### 7. **Schedule Examples by Use Case**
-
-| Use Case | Recommended Schedule | Command |
-|----------|---------------------|---------|
-| **Active Development** | Real-time + 1h backup | `csync -s ./code -p gdrive -daemon -b -watch -interval 1h -l ./dev.log` |
-| **Document Backup** | Every 30 minutes | `csync -s ~/Documents -p all -daemon -b -interval 30m -l ./docs.log` |
-| **Photo Backup** | Daily sync | `csync -s ~/Photos -p pcloud -daemon -b -interval 24h -l ./photos.log` |
-| **Critical Data** | Real-time + 2h backup | `csync -s ~/critical -p all -daemon -b -watch -interval 2h -l ./critical.log` |
-| **Archive Storage** | Weekly sync | `csync -s ~/archives -p pcloud -daemon -b -interval 168h -l ./archive.log` |
-
-### 8. **Troubleshooting Scheduled Daemons**
-
-```bash
-# Check if daemon is running
-csync -status
-ps aux | grep csync
-
-# Debug daemon issues
-csync -s ./test -p gdrive -daemon -v --debug -l ./debug.log
-
-# Test scheduling without daemon
-csync -s ./test -p gdrive -interval 1m -v  # Runs once, shows what daemon would do
-
-# Stop stuck daemon
-csync -stop
-# Or manually: kill $(cat /var/run/csync.pid)
-```
-
-### 9. **Systemd Integration** (Linux)
-
-For system-level scheduling, create a systemd service:
-
-```bash
-# Create service file: /etc/systemd/system/csync.service
-[Unit]
-Description=csync daemon
-After=network.target
-
-[Service]
-Type=simple
-User=your-username
-ExecStart=/usr/local/bin/csync -s /home/user/data -p all -daemon -b -watch -interval 1h -l /var/log/csync.log
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-
-# Enable and start service
-sudo systemctl enable csync
-sudo systemctl start csync
-sudo systemctl status csync
-```
-
-**Key Benefits of Daemon Scheduling:**
-- ✅ **Automatic sync** - No manual intervention needed
-- ✅ **Persistent** - Continues after reboot (with systemd)
-- ✅ **Flexible timing** - From seconds to days
-- ✅ **Real-time option** - Instant sync on file changes
-- ✅ **Multiple targets** - Different schedules for different folders
-- ✅ **Reliable** - Automatic retry and error handling
 
 ### Advanced Usage
 
@@ -428,10 +213,8 @@ csync -s ./large-folder -p all -w 10 -v
 | `-dry-run` | `-d` | `false` | Show what would be synced without making changes |
 | `-verbose` | `-v` | `false` | Enable verbose logging with detailed output |
 | `-debug` | | `false` | Enable detailed debug logging for troubleshooting |
-| `-background` | `-b` | `false` | Run in background (works for both regular sync and daemon mode) |
 | `-workers` | `-w` | `0` | Max concurrent workers (0 = use config) |
 | `-init` | `-i` | `false` | Initialize configuration file with defaults |
-| `-log-file` | `-l` | | Write logs to specified file (works for both regular and daemon mode) |
 
 ### Daemon Mode Options
 
@@ -442,7 +225,6 @@ csync -s ./large-folder -p all -w 10 -v
 | `-stop` | | `false` | Stop daemon |
 | `-status` | | `false` | Show daemon status |
 | `-reload` | | `false` | Reload daemon configuration |
-| `-background` | `-b` | `false` | Run daemon detached from terminal |
 | `-interval` | | `5m` | Sync interval for daemon mode |
 | `-watch` | | `false` | Enable file watching for real-time sync |
 | `-pid-file` | | `csync.pid` | PID file location |
@@ -521,32 +303,11 @@ csync/
 └── README.md            # This file
 ```
 
-### Running Tests
-
-```bash
-# Run all tests
-go test ./...
-
-# Run tests with coverage
-go test -cover ./...
-
-# Run tests for specific package
-go test ./internal/scanner
-
-# Verbose test output
-go test -verbose ./...
-```
-
 ### Building
 
 ```bash
 # Build for current platform
-go build -o csync ./cmd/csync
-
-# Build for multiple platforms
-GOOS=linux GOARCH=amd64 go build -o csync-linux-amd64 ./cmd/csync
-GOOS=windows GOARCH=amd64 go build -o csync-windows-amd64.exe ./cmd/csync
-GOOS=darwin GOARCH=amd64 go build -o csync-darwin-amd64 ./cmd/csync
+task build
 ```
 
 ## Contributing
@@ -578,83 +339,3 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## Vision & Roadmap
 
 For detailed project vision, goals, and roadmap, see [VISION.md](VISION.md).
-
-
-### Quick Start
-
-```bash
-# 1. Initialize minimal config
-csync -i
-
-# 2. Edit csync.json - add your paths
-
-# 3. Setup Google Drive credentials (one time)
-# Follow detailed guide in "Google Drive Setup" section above
-
-# 4. Start syncing
-csync -p gdrive              # Clean output
-csync -p all -v              # Verbose output
-csync -s ./docs -p gdrive -d # Preview changes
-```
-
-## Logging
-
-csync provides flexible logging options for both regular sync operations and daemon mode.
-
-### Log Destinations
-
-| Mode | Default Output | With `-l logfile` | With `-b` (background) |
-|------|---------------|-------------------|------------------------|
-| **Regular Sync** | Terminal/Console | File + Terminal | File only (if `-l` specified) or `/dev/null` |
-| **Daemon Mode** | Terminal/Console | File + Terminal | File only (if `-l` specified) or `/dev/null` |
-| **Background Daemon** | File (if `-l` specified) or `/dev/null` | File only | File only |
-
-### Log File Examples
-
-```bash
-# Regular sync with log file
-csync -s ./docs -p gdrive -l ./sync.log
-
-# Regular sync in background with log file
-csync -s ./docs -p gdrive -b -l ./sync.log
-
-# Daemon with log file (visible in terminal too)
-csync -s ./docs -p gdrive -daemon -l /var/log/csync.log
-
-# Background daemon with log file (no terminal output)
-csync -s ./docs -p gdrive -daemon -b -l /var/log/csync.log
-
-# View live logs
-tail -f /var/log/csync.log
-```
-
-### Log Levels
-
-- **Default**: Essential operations and errors
-- **Verbose (`-v`)**: Detailed operational information
-- **Debug (`--debug`)**: Very detailed troubleshooting information
-
-```bash
-# Debug logging to file for troubleshooting
-csync -s ./problematic-folder -p all --debug -l ./debug.log
-```
-
-### Production Logging Setup
-
-```bash
-# Create log directory
-sudo mkdir -p /var/log/csync
-sudo chown $USER:$USER /var/log/csync
-
-# Start production daemon with logging
-csync -s ~/important-data -p all -daemon -b \
-      -watch -interval 1h \
-      -v -l /var/log/csync/sync.log \
-      -pid-file /var/run/csync.pid
-
-# Monitor logs
-tail -f /var/log/csync/sync.log
-
-# Rotate logs (add to crontab)
-# 0 0 * * 0 /usr/sbin/logrotate /etc/logrotate.d/csync
-```
